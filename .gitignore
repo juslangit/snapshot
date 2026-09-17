@@ -1,0 +1,16 @@
+# Godot
+.godot/
+*.translation
+
+# Exports
+build/
+*.dmg
+*.exe
+*.pck
+*.zip
+
+# Secrets
+.env
+
+# macOS
+.DS_Store
