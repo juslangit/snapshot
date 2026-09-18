@@ -37,6 +37,15 @@ The originals are kept in `assets/audio/freesound/` with a `SOURCES.md`; the
 files the game actually loads are the PCM conversions beside them, because
 Godot cannot import a 24-bit WAV.
 
+## Sky
+
+[Kloofendal 38d Partly Cloudy (Pure Sky)](https://polyhaven.com/a/kloofendal_38d_partly_cloudy_puresky)
+by Greg Zaal and Jarod Guest, from Poly Haven, CC0 (no credit required). Used at
+4k with the sun disc clamped out of it
+(`assets/polyhaven/hdri/kloofendal_38d_partly_cloudy_puresky_4k_sunless.hdr`),
+because the yard's sun is the calibrated `Sun` light and the sky is only there
+to be looked at.
+
 ## The photography
 
 The formulas in `scripts/optics.gd` are the standard ones — the exposure value

@@ -36,6 +36,8 @@ const APERTURE_MARKS: Array[String] = ["1.4", "2", "2.8", "4", "5.6", "8", "11",
 const SHUTTERS: Array[float] = [4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1024.0, 2048.0]
 const SHUTTER_MARKS: Array[String] = ["4", "8", "15", "30", "60", "125", "250", "500", "1000", "2000"]
 const SENSITIVITIES: Array[float] = [100.0, 200.0, 400.0, 800.0, 1600.0, 3200.0, 6400.0]
+## The zoom, one scroll click per step.
+const FOCAL_LENGTHS: Array[float] = [24.0, 28.0, 35.0, 50.0, 85.0, 105.0, 135.0]
 
 
 ## What the dial says, for a value that may have come from anywhere.

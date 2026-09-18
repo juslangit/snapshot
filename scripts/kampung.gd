@@ -55,9 +55,15 @@ const HEIGHTS := {
 ## expected to move again whenever the art does, and the check is what will say
 ## so.
 const SUN_LUX := 35000.0
-## How much of the sky's own light reaches the yard. A real sky is a huge soft
-## source and this is how much of it the ground sees.
-const SKY_ENERGY := 1.0
+## The photographed sky. Its pixels are relative, not absolute, so
+## SKY_ENERGY scales them so the clouds still read at f/8, 1/125, ISO 100:
+## at 2.2 the sky blew out to white, at 0.3 it went a dull grey, and 0.6 is a
+## bright morning with the cumulus visible. It only changes how the sky looks,
+## not how the yard is lit. SKY_TURN_DEGREES lines its sun up with the Sun
+## node - dev/looks/_sky.tscn measures it.
+const SKY_HDRI := "res://assets/polyhaven/hdri/kloofendal_38d_partly_cloudy_puresky_4k_sunless.hdr"
+const SKY_ENERGY := 0.6
+const SKY_TURN_DEGREES := 74.4
 ## How much fill the sky throws into the shadows. Deliberately low against the
 ## sun: at the first setting that exposed correctly the sky was doing three
 ## quarters of the work, the shadows were pale and the light had no direction
@@ -117,15 +123,23 @@ func _light() -> void:
 	add_child(sun)
 
 	var env := Environment.new()
+	## The sky is a photographed one - Poly Haven's Kloofendal 38d Partly
+	## Cloudy, CC0 - because a photography game's sky ends up in the
+	## photographs, and a gradient reads as a gradient the moment you frame it.
+	## Scattered cumulus on blue is what a clear Malaysian morning looks like.
+	## Only the background comes from it: the light on the yard is still the
+	## calibrated sun and fill below, so swapping the sky does not move the
+	## exposure the whole game is marked against.
 	var sky := Sky.new()
-	var material := ProceduralSkyMaterial.new()
-	material.sky_top_color = Color(0.29, 0.48, 0.74)
-	material.sky_horizon_color = Color(0.82, 0.78, 0.68)
-	material.ground_bottom_color = Color(0.4, 0.31, 0.22)
-	material.ground_horizon_color = Color(0.68, 0.64, 0.56)
-	material.sun_angle_max = 8.0
-	material.sky_energy_multiplier = SKY_ENERGY
+	var material := PanoramaSkyMaterial.new()
+	material.panorama = load(SKY_HDRI)
+	material.energy_multiplier = SKY_ENERGY
 	sky.sky_material = material
+	## Turned so the sun in the picture stands in the same compass direction as
+	## the sun lighting the yard. It stands higher - 38 degrees against the
+	## light's 24 - which nobody can see from the ground. dev/looks/_sky.tscn
+	## measures the difference and prints the turn to put here.
+	env.sky_rotation = Vector3(0.0, deg_to_rad(SKY_TURN_DEGREES), 0.0)
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	## The sky is left at full brightness because that is what a morning sky
@@ -135,7 +149,12 @@ func _light() -> void:
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.68, 0.72, 0.8)
 	env.ambient_light_energy = AMBIENT_ENERGY
-	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
+	## No reflections from the sky. With the photographed sky reflecting into
+	## every surface the yard metered almost a stop bright and turning the sun
+	## off cost only three quarters of a stop, so the sun had stopped doing the
+	## lighting (D-009). Everything in the yard is matte - wood, plaster, dirt,
+	## leaves - so nothing visible is lost, and _light passes again.
+	env.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
 	## Linear tone mapping, deliberately. A filmic curve flatters a badly
 	## exposed frame and would quietly lie to the light meter; linear means a
 	## blown sky really is blown, and the meter reading is the truth.

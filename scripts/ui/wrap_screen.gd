@@ -7,6 +7,7 @@ extends Control
 ## worked.
 
 signal next_pressed
+signal menu_pressed
 
 var _rows: VBoxContainer
 
@@ -27,12 +28,21 @@ func _ready() -> void:
 	_rows.add_theme_constant_override("separation", 22)
 	add_child(_rows)
 
-func show_sheet(brief: Brief, handed: Array, more_briefs: bool) -> void:
+func show_sheet(brief: Brief, handed: Array, more_briefs: bool, new_best: bool = false) -> void:
 	for child in _rows.get_children():
 		child.queue_free()
 
 	_rows.add_child(Style.label(brief.client.to_upper(), Style.SIZE_SMALL, Style.AMBER))
-	_rows.add_child(Style.label(brief.title, Style.SIZE_TITLE))
+	var title_line := HBoxContainer.new()
+	title_line.add_theme_constant_override("separation", 26)
+	_rows.add_child(title_line)
+	title_line.add_child(Style.label(brief.title, Style.SIZE_TITLE))
+	if new_best:
+		## The one moment the game says well done out loud.
+		var badge := Style.panel(Style.AMBER, 8)
+		badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		badge.add_child(Style.label("NEW BEST", Style.SIZE_BODY, Style.BODY))
+		title_line.add_child(badge)
 
 	var accepted := 0
 	var used := 0
@@ -85,7 +95,11 @@ func show_sheet(brief: Brief, handed: Array, more_briefs: bool) -> void:
 	_rows.add_child(Style.separator())
 	var buttons := HBoxContainer.new()
 	buttons.alignment = BoxContainer.ALIGNMENT_END
+	buttons.add_theme_constant_override("separation", 20)
 	_rows.add_child(buttons)
+	var menu := Style.button("Main menu")
+	menu.pressed.connect(func() -> void: menu_pressed.emit())
+	buttons.add_child(menu)
 	var go := Style.button("The next job" if more_briefs else "Finish")
 	go.pressed.connect(func() -> void: next_pressed.emit())
 	buttons.add_child(go)

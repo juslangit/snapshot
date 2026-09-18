@@ -17,6 +17,9 @@ var main: Node3D
 var last_verdict: Judge.Verdict
 
 func _ready() -> void:
+	## A throwaway profile, so the checks never write into a real album.
+	Profile.root = "user://checks_profile/"
+	Profile.erase_all()
 	main = (load("res://scenes/main.tscn") as PackedScene).instantiate() as Node3D
 	add_child(main)
 	await get_tree().process_frame
@@ -30,6 +33,8 @@ func _ready() -> void:
 	await _finishing_a_brief()
 	await _the_next_job()
 	await _walking_out()
+	await _the_menus()
+	Profile.erase_all()
 
 	print("")
 	if failures == 0:
@@ -67,17 +72,47 @@ func _find_button(node: Node, text: String) -> Button:
 			return found
 	return null
 
+## Press a button found by its node name - the menu's buttons carry a number
+## in their text, so the name is the steadier handle.
+func _press_named(screen: Control, name_text: String) -> bool:
+	var button := screen.find_child(name_text, true, false) as Button
+	if button == null or not button.is_visible_in_tree():
+		return false
+	button.pressed.emit()
+	await get_tree().process_frame
+	return true
+
+## A real key press through the real input path, as if from the keyboard.
+func _key(code: Key) -> void:
+	var event := InputEventKey.new()
+	event.physical_keycode = code
+	event.keycode = code
+	event.pressed = true
+	Input.parse_input_event(event)
+	await get_tree().process_frame
+	var up := event.duplicate() as InputEventKey
+	up.pressed = false
+	Input.parse_input_event(up)
+	await get_tree().process_frame
+
 func _starts_at_the_title() -> void:
-	print("the title")
-	_check("the game opens on the title", main.stage == main.Stage.TITLE)
-	_check("the title screen is showing", _screen("Title").visible)
+	print("the main menu")
+	_check("the game opens on the main menu", main.stage == main.Stage.TITLE)
+	_check("the menu is showing", _screen("Menu").visible)
 	_check("the viewfinder is not", not main.hud.visible)
 	_check("and the mouse is the player's own", Input.mouse_mode != Input.MOUSE_MODE_CAPTURED)
-	_check("there is a button to take the job", _find_button(_screen("Title"), "Take the job") != null)
+	for item in ["Play", "Photoalbum", "Howtoplay", "Settings", "Quit"]:
+		_check("it has %s" % item, _screen("Menu").find_child(item, true, false) != null)
 
 func _the_brief_comes_first() -> void:
+	print("choosing a job")
+	_check("Play opens the job board", await _press_named(_screen("Menu"), "Play"))
+	_check("the job board is showing", main.stage == main.Stage.JOBS and _screen("Jobs").visible)
+	_check("every client has a card", _has_text(_screen("Jobs"), Game.briefs[0].title)
+		and _has_text(_screen("Jobs"), Game.briefs[2].title))
+	_check("a new job says so", _has_text(_screen("Jobs"), "NEW"))
 	print("the brief")
-	_check("pressing it goes to the brief", await _press(_screen("Title"), "Take the job"))
+	_check("taking the first job goes to the brief", await _press_named(_screen("Jobs"), "Take0"))
 	_check("the brief screen is showing", main.stage == main.Stage.BRIEFING and _screen("Brief").visible)
 	_check("it is the first client's brief", Game.brief_index == 0,
 		Game.current_brief().client)
@@ -241,9 +276,52 @@ func _the_next_job() -> void:
 		Game.current_shots()[0].title)
 
 func _walking_out() -> void:
-	print("leaving")
+	print("pausing and leaving")
 	await _press(_screen("Brief"), "Go to work")
-	main.enter(main.Stage.TITLE)
-	await get_tree().process_frame
-	_check("escaping from the yard returns to the title", main.stage == main.Stage.TITLE and _screen("Title").visible)
+	_check("the controls are listed in the viewfinder", main.hud.legend.is_visible_in_tree())
+	await _key(KEY_2)
+	_check("pressing a key lights its row", main.hud.legend.lit_row() == 1, "row %d" % main.hud.legend.lit_row())
+	await _key(KEY_ESCAPE)
+	_check("Esc in the yard pauses", main.stage == main.Stage.PAUSED and _screen("Pause").visible)
+	_check("and gives the mouse back", Input.mouse_mode != Input.MOUSE_MODE_CAPTURED)
+	await _key(KEY_ESCAPE)
+	_check("Esc again goes back to the yard", main.stage == main.Stage.SHOOTING)
+	await _key(KEY_ESCAPE)
+	_check("the pause menu opens the guide", await _press_named(_screen("Pause"), "Howtoplay") and main.stage == main.Stage.HOW_TO)
+	await _key(KEY_ESCAPE)
+	_check("which goes back to the pause menu, not the main menu", main.stage == main.Stage.PAUSED)
+	_check("leaving the job goes to the main menu", await _press_named(_screen("Pause"), "Leavethejob") and main.stage == main.Stage.TITLE and _screen("Menu").visible)
 	_check("and the mouse comes back", Input.mouse_mode != Input.MOUSE_MODE_CAPTURED)
+
+func _the_menus() -> void:
+	print("the rest of the menu")
+	_check("the first job's best score was saved", Profile.best_score(0) >= 0, "best %d" % Profile.best_score(0))
+	await _press_named(_screen("Menu"), "Play")
+	_check("and the job board shows it", _has_text(_screen("Jobs"), "BEST"))
+	await _key(KEY_ESCAPE)
+	_check("Esc on the job board goes back", main.stage == main.Stage.TITLE)
+
+	var kept := Profile.album().size()
+	## All three shots of the first job were accepted, and the first was
+	## reshot badly after a good take - the album must hold the good one.
+	_check("every accepted picture went into the album, the best take of each", kept == 3, "%d kept" % kept)
+	_check("the album opens", await _press_named(_screen("Menu"), "Photoalbum") and _screen("Album").visible)
+	_check("and shows them", _has_text(_screen("Album"), "photograph"))
+	await _key(KEY_ESCAPE)
+
+	_check("the guide opens from the menu", await _press_named(_screen("Menu"), "Howtoplay") and main.stage == main.Stage.HOW_TO)
+	var pages := 1
+	while (_screen("HowTo") as HowToScreen).page < HowToScreen.PAGES.size() - 1 and pages < 20:
+		await _press_named(_screen("HowTo"), "NextPage")
+		pages += 1
+	_check("it has six pages and they all turn", pages == 6, "%d pages" % pages)
+	await _press_named(_screen("HowTo"), "NextPage")
+	_check("Done on the last page goes back to the menu", main.stage == main.Stage.TITLE)
+
+	_check("settings open", await _press_named(_screen("Menu"), "Settings") and main.stage == main.Stage.SETTINGS)
+	var before: bool = Profile.setting("show_legend")
+	await _press_named(_screen("Settings"), "show_legend")
+	_check("a toggle saves straight away", bool(Profile.setting("show_legend")) != before)
+	await _press_named(_screen("Settings"), "show_legend")
+	await _key(KEY_ESCAPE)
+	_check("Esc leaves the settings", main.stage == main.Stage.TITLE)

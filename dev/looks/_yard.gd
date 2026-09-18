@@ -39,12 +39,12 @@ func _run() -> void:
 	await _shot("03_yard_house")
 
 	## The well, close, wide open, so the depth of field is unmistakable.
-	await _aim("well", Vector3(-5.2, 0.1, 1.6), 50.0, 0, 9, 0)
+	await _aim("well", Vector3(-3.0, 0.1, -0.6), 50.0, 0, 9, 0)
 	await _shot("04_well_wide_open")
 
 	## The same well stopped right down: if the physical camera is doing its
 	## job these two pictures look obviously different behind the subject.
-	await _aim("well", Vector3(-5.2, 0.1, 1.6), 50.0, 8, 1, 0)
+	await _aim("well", Vector3(-3.0, 0.1, -0.6), 50.0, 8, 1, 0)
 	await _shot("05_well_stopped_down")
 
 	## Crouched at the steps for the cat.
@@ -82,6 +82,20 @@ func _run() -> void:
 	await main._fire()
 	await _wait(0.6)
 	await _shot("13_review")
+
+	## A bad photograph of the same cat - too dark, too small, out of focus and
+	## tilted - so the review screen is seen with advice on every line, which is
+	## its fullest and the one most likely to run off the bottom.
+	main.enter(main.Stage.SHOOTING)
+	await _wait(0.3)
+	await _aim("cat", Vector3(-0.5, 0.1, -1.1), 24.0, 8, 9, 0)
+	main.camera.focus_distance_m = 30.0
+	main.camera.roll_degrees = 9.0
+	main.camera.apply_settings()
+	await _wait(0.3)
+	await main._fire()
+	await _wait(0.6)
+	await _shot("13b_review_bad")
 
 	main.enter(main.Stage.WRAP)
 	await _wait(0.4)

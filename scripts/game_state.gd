@@ -74,6 +74,12 @@ func brief_score() -> int:
 		count += 1
 	return 0 if count == 0 else roundi(float(total) / float(count))
 
+## Open a job picked from the job board.
+func start_brief(index: int) -> void:
+	brief_index = clampi(index, 0, briefs.size() - 1)
+	_clear_handed()
+	brief_changed.emit()
+
 func advance_brief() -> bool:
 	if brief_index + 1 >= briefs.size():
 		return false

@@ -17,6 +17,7 @@ var _headline: Label
 var _total: Label
 var _settings: Label
 var _lines: VBoxContainer
+var _scroll: ScrollContainer
 var _next: Button
 var _reshoot: Button
 
@@ -46,13 +47,13 @@ func _ready() -> void:
 	mount.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	split.add_child(mount)
 	_photo_rect = TextureRect.new()
-	_photo_rect.custom_minimum_size = Vector2(1080, 608)
+	_photo_rect.custom_minimum_size = Vector2(960, 540)
 	_photo_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_photo_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	mount.add_child(_photo_rect)
 
 	var report := Style.panel(Style.PANEL)
-	report.custom_minimum_size = Vector2(640, 0)
+	report.custom_minimum_size = Vector2(760, 0)
 	report.size_flags_vertical = Control.SIZE_FILL
 	split.add_child(report)
 
@@ -71,16 +72,24 @@ func _ready() -> void:
 
 	_headline = Style.label("", Style.SIZE_BODY, Style.AMBER)
 	_headline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_headline.custom_minimum_size = Vector2(580, 0)
+	_headline.custom_minimum_size = Vector2(680, 0)
 	rows.add_child(_headline)
 	_settings = Style.label("", Style.SIZE_SMALL, Style.INK_DIM)
 	rows.add_child(_settings)
 	rows.add_child(Style.separator())
 
+	## The lines scroll rather than push the buttons off the screen. A badly
+	## taken photograph has advice on every line, and without this the last
+	## mark and "Shoot it again" fell off the bottom of a 1080p screen.
+	var scroll := ScrollContainer.new()
+	_scroll = scroll
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	rows.add_child(scroll)
 	_lines = VBoxContainer.new()
-	_lines.add_theme_constant_override("separation", 14)
-	_lines.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	rows.add_child(_lines)
+	_lines.add_theme_constant_override("separation", 12)
+	_lines.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(_lines)
 
 	rows.add_child(Style.separator())
 	var buttons := HBoxContainer.new()
@@ -104,6 +113,7 @@ func show_verdict(verdict: Judge.Verdict, photo: Image, settings: String, last_s
 
 	for child in _lines.get_children():
 		child.queue_free()
+	_scroll.scroll_vertical = 0
 
 	for line in verdict.lines:
 		var block := VBoxContainer.new()
@@ -122,8 +132,16 @@ func show_verdict(verdict: Judge.Verdict, photo: Image, settings: String, last_s
 
 		var detail := Style.label(line.detail, Style.SIZE_SMALL, Style.INK_DIM)
 		detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		detail.custom_minimum_size = Vector2(580, 0)
+		detail.custom_minimum_size = Vector2(680, 0)
 		block.add_child(detail)
+
+		## What to do about it, in amber so it reads as the instruction and
+		## the grey line above it reads as the evidence.
+		if line.fix != "":
+			var fix := Style.label("Next time: " + line.fix, Style.SIZE_SMALL, Style.AMBER)
+			fix.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			fix.custom_minimum_size = Vector2(680, 0)
+			block.add_child(fix)
 
 	if verdict.accepted():
 		_next.text = "Hand in the brief" if last_shot else "Next shot"

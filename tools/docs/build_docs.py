@@ -58,7 +58,7 @@ _cache.mkdir(exist_ok=True)
 
 GALLERIES = [
     ("screens-yard", "The yard", "One kampung morning, and the only place in the game. The house is built from primitives - posts, a floor, a deep verandah, plank walls with a doorway left in them, a steep gable roof - because the only stilt house available to download turned out to be a fantasy treehouse in front of a painted backdrop. Everything that was downloaded is scaled by the height the thing actually is, which is how a well that arrived 1,203 units tall became a well 2.4 m tall.", [
-        ("03_yard_house", "The first shot of the first brief: the whole house, straight, with the morning light on it. The sun is set in lux and comes over the photographer's right shoulder, so the front of the building is modelled by it and the shadows run away from the camera."),
+        ("03_yard_house", "The first shot of the first brief: the whole house, straight, with the morning light on it. The sun is set in lux and comes over the photographer's right shoulder, so the front of the building is modelled by it and the shadows run away from the camera. The sky behind it is a photographed one from Poly Haven, turned so its sun stands where the light comes from."),
         ("10_banana", "The stand of banana trees to the east. The tree line beyond it is scenery - far enough out that nobody walks to it, close enough that it breaks the horizon in every direction."),
         ("12_from_doorway", "Standing in the doorway, shooting out. The opening is a marked area in the scene, so the game knows when a line of sight passed through it - which is what earns a shot credit for being framed by something."),
         ("11_hen", "The hen paces across the yard on a phase rather than a clock, so the camera can step her mid-exposure. She is the shutter-speed lesson."),
@@ -69,10 +69,19 @@ GALLERIES = [
         ("06_cat_close", "The cat at 85 mm and f/2, which is the cafe's brief: close, and the background gone."),
         ("09_blown_out", "Wide open, slow, and at the top of the ISO dial. Three stops over - and because the tone mapping is linear on purpose, a blown sky really is blown rather than quietly rescued by a filmic curve."),
     ]),
+    ("screens-menus", "The menus", "Added 2026-09-18, when Luqman asked for the game to feel like a proper finished game: a main menu over the yard, a job board, a photo album that survives quitting, an illustrated guide to the camera, settings and a pause menu. Dressed as a camera's own menus - numbered items, viewfinder brackets, an amber bar on the item under the cursor.", [
+        ("menu_01_main", "The main menu. The yard is behind it with the camera turning slowly on the spot; the corner shows the exposure the yard is lit for."),
+        ("menu_03_jobs", "The job board: every client as a letter, what they need, and the best you have handed them. Nothing is locked."),
+        ("menu_04_album", "The photo album. Every picture a client accepted, saved as a real PNG, newest first."),
+        ("menu_07_howto_1", "How to play, page two of six: aperture, for somebody who has never held a camera. The drawings are made in code."),
+        ("menu_02_wrap", "The contact sheet at the end of a job, now with a new-best badge and a way back to the menu."),
+        ("menu_09_pause", "Esc in the yard pauses rather than throwing the job away."),
+    ]),
     ("screens-flow", "The brief and the report", "A photograph cannot be right or wrong on its own - only against what somebody asked for. So the game gives you a client, and the report afterwards carries the measurement behind every mark.", [
         ("01_title", "The title screen is the yard itself, darkened, with the trade the game is built on stated in three sentences."),
         ("02_brief", "The client's letter. Deliberately the only screen that is not charcoal and amber, because a brief arrives from outside."),
         ("13_review", "The print, and what they made of it. \"The cat at 2.8 m; sharp from 2.7 m to 2.9 m\" and \"background 42.0 times blurrier than sharp at f/2\" are sentences worth printing only because they are true."),
+        ("13b_review_bad", "The same cat taken badly - wide lens, f/22, 1/2000 s, tilted. Every line that lost marks now says what to do next time in amber: which dial, which way, to what setting and which key, worked out with the same formulas that did the marking. Added after the first playtest asked for \"add more aperture\" rather than only what went wrong."),
         ("14_contact_sheet", "The contact sheet at the end of a brief: the pictures the client got, side by side, with what each one scored."),
     ]),
 ]

@@ -24,6 +24,7 @@ func _ready() -> void:
 	_framed()
 	_level()
 	_every_line_explains_itself()
+	_advice()
 	print("")
 	if failures == 0:
 		print("JUDGE: all checks passed")
@@ -305,6 +306,59 @@ func _every_line_explains_itself() -> void:
 	failures += bad
 	if bad == 0:
 		print("  ok    all %d demands explain every mark, good shot and bad" % demands.size())
+
+func _advice() -> void:
+	print("advice a beginner can follow")
+	## Luqman's first playtest (2026-09-18) asked for the review to say what to
+	## do - "add more aperture" or ISO - not only what went wrong. So every line
+	## that loses marks must carry an instruction, and the instruction must
+	## never undo what the client asked for.
+	var missing := 0
+	for demand in ["", "shallow", "deep", "freeze", "clean", "framed", "level"]:
+		for line in Judge.mark(_shot(demand), _wrecked_reading()).lines:
+			if line.points < line.out_of * 0.95 and line.fix.strip_edges() == "":
+				missing += 1
+				print("  FAIL  demand '%s': '%s' lost marks with no advice" % [demand, line.label])
+	failures += missing
+	if missing == 0:
+		print("  ok    every line that loses marks says what to do")
+	_check("a perfect line gives no advice", Judge.mark(_shot(), _good_reading()).lines[0].fix == "")
+
+	var dark := _good_reading()
+	dark.measured_luminance = Optics.MIDDLE_GREY / 4.0
+	var fix: String = Judge.mark(_shot(), dark).lines[3].fix
+	_check("too dark: open the aperture, with the key", fix.to_lower().contains("open the aperture") and fix.contains("press 1"), "\"%s\"" % fix)
+	_check("and it names the setting to go to", fix.contains("f/4"), "\"%s\"" % fix)
+
+	var frozen_dark := dark
+	frozen_dark.aperture = Optics.APERTURES[0]
+	fix = Judge.mark(_shot("freeze"), frozen_dark).lines[3].fix
+	_check("a freeze brief is never told to slow the shutter", not fix.to_lower().contains("slow the shutter") and fix.contains("ISO"), "\"%s\"" % fix)
+
+	var bright := _good_reading()
+	bright.measured_luminance = Optics.MIDDLE_GREY * 4.0
+	bright.aperture = Optics.APERTURES[1]
+	fix = Judge.mark(_shot("shallow"), bright).lines[3].fix
+	_check("a soft-background brief is never told to close the aperture", not fix.to_lower().contains("close the aperture") and fix.to_lower().contains("speed up the shutter"), "\"%s\"" % fix)
+
+	var crisp := _good_reading()
+	crisp.aperture = Optics.APERTURES[7]
+	fix = Judge.mark(_shot("shallow"), crisp).lines[5].fix
+	_check("a crisp background is told which f-number to open to", fix.contains("Open the aperture to f/"), "\"%s\"" % fix)
+
+	var far := _good_reading()
+	far.fill = 0.2
+	fix = Judge.mark(_shot(), far).lines[1].fix
+	_check("too small in the frame: zoom in, with the setting", fix.contains("Zoom in to about"), "\"%s\"" % fix)
+	far.fill = 0.05
+	fix = Judge.mark(_shot(), far).lines[1].fix
+	_check("far too small: zoom all the way and walk closer", fix.contains("135 mm") and fix.contains("walk closer"), "\"%s\"" % fix)
+
+	var blurred := _good_reading()
+	blurred.subject_speed = 1.2
+	blurred.shutter = Optics.SHUTTERS[3]
+	fix = Judge.mark(_shot("freeze"), blurred).lines[5].fix
+	_check("a blurred hen is told which shutter speed stops it", fix.contains("Speed the shutter up to 1/"), "\"%s\"" % fix)
 
 func _wrecked_reading() -> Judge.Reading:
 	var r := _good_reading()

@@ -17,12 +17,11 @@ var _shot_title: Label
 var _shot_note: Label
 var _shot_demand: Label
 var _progress: Label
-var _dials: Label
 var _dof: Label
 var _needle: Panel
 var _meter_text: Label
 var _grid: Control
-var _hint: Label
+var legend: ControlLegend
 var _flash: ColorRect
 var _shot_index: int = 0
 
@@ -34,7 +33,7 @@ func _ready() -> void:
 	_build_dial_bar()
 	_build_meter()
 	_build_flash()
-	_build_hint()
+	_build_legend()
 
 # -- the brief, top left ----------------------------------------------------
 
@@ -67,40 +66,57 @@ func _build_brief_card() -> void:
 	_shot_demand = Style.label("", Style.SIZE_BODY, Style.AMBER)
 	rows.add_child(_shot_demand)
 
-# -- the dials, along the bottom -------------------------------------------
+# -- the camera's settings, along the bottom left ---------------------------
+
+## One cell per dial, like the top screen of a real camera: a small caption
+## and a large value. The cell whose value just changed flashes amber, so a
+## player pressing 3 sees which number moved without having to read them all.
+const CELLS := ["ZOOM", "APERTURE", "SHUTTER", "ISO", "FOCUS"]
+
+var _cells: Array[Label] = []
+var _cell_glow: Array[float] = []
+var _last_values: Array[String] = []
 
 func _build_dial_bar() -> void:
 	var bar := Style.panel(Style.PANEL)
-	bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	bar.offset_left = 48
-	bar.offset_right = -48
-	bar.offset_top = -152
+	bar.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	bar.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	bar.offset_left = 40
 	bar.offset_bottom = -40
+	bar.offset_top = -40
 	add_child(bar)
 
 	var rows := VBoxContainer.new()
-	rows.add_theme_constant_override("separation", 6)
+	rows.add_theme_constant_override("separation", 8)
 	bar.add_child(rows)
-	_dials = Style.label("", Style.SIZE_DIAL)
-	rows.add_child(_dials)
+
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 30)
+	rows.add_child(line)
+	for caption in CELLS:
+		var cell := VBoxContainer.new()
+		cell.add_theme_constant_override("separation", 0)
+		cell.custom_minimum_size = Vector2(128 if caption != "FOCUS" else 140, 0)
+		line.add_child(cell)
+		cell.add_child(Style.label(caption, Style.SIZE_CAPTION, Style.INK_DIM))
+		var value := Style.label("", Style.SIZE_DIAL, Style.INK)
+		cell.add_child(value)
+		_cells.append(value)
+		_cell_glow.append(0.0)
+		_last_values.append("")
+
+	line.add_child(_build_meter())
 	_dof = Style.label("", Style.SIZE_SMALL, Style.INK_DIM)
 	rows.add_child(_dof)
 
-# -- the meter, right of centre -------------------------------------------
+# -- the meter, at the end of the settings bar -----------------------------
 
-func _build_meter() -> void:
-	var holder := Style.panel(Style.PANEL_SOFT)
-	holder.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
-	holder.offset_left = -300
-	holder.offset_right = -48
-	holder.offset_top = -66
-	holder.offset_bottom = 66
-	add_child(holder)
-
+## Inside the settings bar rather than floating on its own, the way a camera
+## shows its meter in the strip along the bottom of the viewfinder.
+func _build_meter() -> Control:
 	var rows := VBoxContainer.new()
-	rows.add_theme_constant_override("separation", 10)
-	holder.add_child(rows)
-	rows.add_child(Style.label("LIGHT", Style.SIZE_SMALL, Style.INK_DIM))
+	rows.add_theme_constant_override("separation", 6)
+	rows.add_child(Style.label("LIGHT", Style.SIZE_CAPTION, Style.INK_DIM))
 
 	var track := Panel.new()
 	track.custom_minimum_size = Vector2(206, 22)
@@ -134,6 +150,7 @@ func _build_meter() -> void:
 
 	_meter_text = Style.label("--", Style.SIZE_SMALL, Style.INK_DIM)
 	rows.add_child(_meter_text)
+	return rows
 
 func _build_grid() -> void:
 	_grid = Control.new()
@@ -171,15 +188,10 @@ func _build_flash() -> void:
 	_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_flash)
 
-func _build_hint() -> void:
-	_hint = Style.label("", Style.SIZE_SMALL, Style.INK_DIM)
-	_hint.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_hint.offset_left = -560
-	_hint.offset_right = -48
-	_hint.offset_top = 44
-	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_hint.text = "1 2  aperture      3 4  shutter      5 6  ISO\n[ ]  focus       F  focus on centre      SCROLL  zoom\nQ E  tilt       R  level       G  grid       TAB  next shot\nCLICK  take the picture"
-	add_child(_hint)
+func _build_legend() -> void:
+	legend = ControlLegend.new()
+	legend.name = "Legend"
+	add_child(legend)
 
 ## The blink of the mirror when the shutter fires. Long exposures blink for
 ## longer, which is a small, free way of teaching what shutter speed is.
@@ -193,7 +205,7 @@ func blink(seconds: float) -> void:
 func show_shot(index: int) -> void:
 	_shot_index = index
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if camera == null:
 		return
 	var shots := Game.current_shots()
@@ -207,13 +219,26 @@ func _process(_delta: float) -> void:
 	_shot_note.text = "\"%s\"" % shot.note
 	_shot_demand.text = shot.demand_text().to_upper() if shot.demand != "" else ""
 
-	_dials.text = "%.0f mm     f/%s     1/%s s     ISO %d     focus %.1f m" % [
-		camera.focal_length_mm, Optics.APERTURE_MARKS[camera.aperture_index],
-		Optics.SHUTTER_MARKS[camera.shutter_index],
-		roundi(camera.sensitivity()), camera.focus_distance_m]
+	var values: Array[String] = [
+		"%.0f mm" % camera.focal_length_mm,
+		"f/%s" % Optics.APERTURE_MARKS[camera.aperture_index],
+		"1/%s" % Optics.SHUTTER_MARKS[camera.shutter_index],
+		"%d" % roundi(camera.sensitivity()),
+		"%.1f m" % camera.focus_distance_m,
+	]
+	for i in values.size():
+		if values[i] != _last_values[i]:
+			## The first fill is not a change the player made, so it does not
+			## flash.
+			if _last_values[i] != "":
+				_cell_glow[i] = 1.0
+			_last_values[i] = values[i]
+			_cells[i].text = values[i]
+		_cell_glow[i] = maxf(0.0, _cell_glow[i] - delta / 0.9)
+		_cells[i].add_theme_color_override("font_color", Style.INK.lerp(Style.AMBER, _cell_glow[i]))
 	var band := camera.depth_of_field()
 	var far_text := "the horizon" if band.y == INF else "%.1f m" % band.y
-	_dof.text = "sharp from %.1f m to %s        EV %.1f" % [band.x, far_text, camera.exposure_value()]
+	_dof.text = "sharp from %.1f m to %s     EV %.1f" % [band.x, far_text, camera.exposure_value()]
 
 func set_meter(stops: float) -> void:
 	## The needle runs three stops either way, which is as far as a frame is

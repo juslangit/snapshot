@@ -24,7 +24,7 @@ open -a Godot --args --path "$(pwd)"     # or press Play in the editor
 |---|---|
 | `W A S D` | walk, `Shift` to hurry |
 | mouse | look |
-| `Ctrl` | crouch — a cat photographed from standing height is a picture of the top of a cat |
+| `C` | crouch, and again to stand (`Ctrl` crouches while held) — a cat photographed from standing height is a picture of the top of a cat |
 | `1` `2` | aperture, a full stop per press |
 | `3` `4` | shutter speed |
 | `5` `6` | ISO |
@@ -35,7 +35,7 @@ open -a Godot --args --path "$(pwd)"     # or press Play in the editor
 | `G` | the thirds grid |
 | `Tab` | switch to another shot on the brief |
 | left click | take the picture |
-| `Esc` | back to the title |
+| `Esc` | pause (and "back" on every menu screen) |
 
 ## How it is put together
 
@@ -47,7 +47,7 @@ open -a Godot --args --path "$(pwd)"     # or press Play in the editor
 | `scripts/brief.gd` | the three clients and their nine shots |
 | `scripts/kampung.gd` | the yard, built from primitives, with downloaded props scaled by the height they should be in real life |
 | `scripts/meter_probe.gd` | a 96×54 second view of the scene, used as the light meter so the viewfinder overlay cannot fool it |
-| `dev/checks/` | five suites, 155 checks — run `tools/check.sh` |
+| `dev/checks/` | five suites, 192 checks — run `tools/check.sh` |
 | `dev/looks/` | harnesses that drive the real game and save screenshots into `dev/shots/`, which is how the art gets reviewed at all |
 
 ## Checks

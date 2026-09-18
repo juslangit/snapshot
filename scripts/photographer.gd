@@ -8,8 +8,10 @@ extends CharacterBody3D
 ## the rig is deliberately plain - walk, crouch, look - and every interesting
 ## control belongs to the camera it carries.
 
-const WALK_SPEED := 2.6
-const RUN_SPEED := 4.6
+## Brisker than a real stroll (about 1.4 m/s). At a true walking pace the yard
+## felt like wading, which Luqman's first playtest on 2026-09-18 said plainly.
+const WALK_SPEED := 4.0
+const RUN_SPEED := 7.0
 const EYE_HEIGHT := 1.62
 const CROUCH_HEIGHT := 0.95
 const MOUSE_SENSITIVITY := 0.0022
@@ -21,6 +23,10 @@ var camera: CameraBody
 var _yaw: float = 0.0
 var _pitch: float = 0.0
 var _crouching: bool = false
+## C toggles the crouch and leaves it on; Ctrl crouches only while held. Both
+## exist because a crouch you have to hold down fights a hand that is also
+## working the dials, and on a Mac Ctrl with a click is a right-click.
+var _crouch_toggled: bool = false
 
 func _ready() -> void:
 	camera = get_node_or_null("Camera") as CameraBody
@@ -31,8 +37,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		var motion := event as InputEventMouseMotion
-		_yaw -= motion.relative.x * MOUSE_SENSITIVITY
-		_pitch = clampf(_pitch - motion.relative.y * MOUSE_SENSITIVITY, deg_to_rad(-85.0), deg_to_rad(85.0))
+		var sensitivity: float = MOUSE_SENSITIVITY * float(Profile.setting("look_sensitivity"))
+		_yaw -= motion.relative.x * sensitivity
+		_pitch = clampf(_pitch - motion.relative.y * sensitivity, deg_to_rad(-85.0), deg_to_rad(85.0))
+	if event is InputEventKey and event.pressed and not event.echo and (event as InputEventKey).physical_keycode == KEY_C:
+		_crouch_toggled = not _crouch_toggled
+
+func is_crouching() -> bool:
+	return _crouching
 
 func _physics_process(delta: float) -> void:
 	if not look_enabled:
@@ -60,7 +72,7 @@ func _walk(delta: float) -> void:
 
 	## Crouching is a composition tool: a cat photographed from standing height
 	## is a picture of the top of a cat.
-	var want_crouch := Input.is_action_pressed("crouch")
+	var want_crouch := _crouch_toggled or Input.is_action_pressed("crouch")
 	if want_crouch != _crouching:
 		_crouching = want_crouch
 	if camera:

@@ -84,7 +84,7 @@ func nudge_sensitivity(steps: int) -> void:
 	apply_settings()
 
 func nudge_focal_length(steps: int) -> void:
-	var ladder := [24.0, 28.0, 35.0, 50.0, 85.0, 105.0, 135.0]
+	var ladder := Optics.FOCAL_LENGTHS
 	var here := ladder.find(focal_length_mm)
 	if here < 0:
 		here = 2
